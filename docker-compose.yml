@@ -1,0 +1,51 @@
+version: '3'
+services:
+  zookeeper:
+    # image: wurstmeister/zookeeper
+    image: zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cckui/kafka:2.13-2.7.0
+    container_name: kafka
+    ports:
+      - "9092"
+      - "1099:1099"
+    environment:
+      DOCKER_API_VERSION: 1.22
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.11.239
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote.rmi.port=1099"
+      # JMX_PORT: 1099
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zookeeper
+
+  kafka-manager:
+    image: kafkamanager/kafka-manager:latest
+    container_name: kafka-manager
+    environment:
+      ZK_HOSTS: zookeeper:2181
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
+
+  kafkaeagle:
+    build:
+      context: .
+      dockerfile: Dockerfile_eagle
+    image: cckui/kafka-eagle:2.0.5
+    container_name: kafka-eagle
+    ports:
+      - 8048:8048
+    environment:
+      KAFKA_EAGLE_CLUSTER_ZK_LIST: zookeeper:2181
+    depends_on:
+      - kafka
